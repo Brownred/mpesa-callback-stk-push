@@ -67,7 +67,7 @@ app.post("/callback", async (req, res) => {
     let receiptNumber = null;
     
     if (ResultCode === 0) {
-      const status = "SUCCESS";
+      status = "SUCCESS";
       
       // Extract additional metadata for successful transactions
       if (CallbackMetadata && CallbackMetadata.Item) {
@@ -75,8 +75,6 @@ app.post("/callback", async (req, res) => {
         if (receiptItem) {
           receiptNumber = receiptItem.Value;
         }
-      } else {
-        status = "FAILED";
       }
     }
     
