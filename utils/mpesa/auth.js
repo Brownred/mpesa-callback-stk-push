@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 
 /**
  * Generates an OAuth access token for MPESA API
