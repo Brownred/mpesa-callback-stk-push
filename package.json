@@ -14,7 +14,9 @@
   "description": "",
   "dependencies": {
     "@prisma/client": "^6.6.0",
+    "cors": "^2.8.5",
     "express": "^5.1.0",
+    "node-fetch": "^3.3.2",
     "prisma": "^6.6.0"
   },
   "devDependencies": {

@@ -1,13 +1,15 @@
 import express from "express";
 import dotenv from "dotenv";
 import db from "./utils/db.js";
+import cors from "cors";
+import { initiateSTKPush } from "./utils/mpesa/stkPush.js";
 
 dotenv.config();
 
 const app = express();
 
 app.use(express.json());
-
+app.use(cors());
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.json({ success: true, message: "Server is running" });
@@ -15,27 +17,49 @@ app.get("/health", (req, res) => {
 
 
 app.post("/initiate", async (req, res) => {
-  const request = req.body;
-
   try {
-    // Validate required fields
+    const { phoneNumber, amount, productId, transactionDesc } = req.body;
     
-
+    // Validate required fields
+    if (!phoneNumber || !amount || !productId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: "Phone number, amount, and productId are required" 
+      });
+    }
+    
+    // Initiate STK Push
+    const stkPushResponse = await initiateSTKPush({
+      phoneNumber,
+      amount: parseFloat(amount),
+      accountReference: "Thrift Shop",
+      transactionDesc: transactionDesc || `Payment for ${productId}`
+    });
+    
+    // Create transaction record in database
     const transaction = await db.transaction.create({
       data: {
-        checkoutRequestId: request.checkoutRequestId,
-        merchantRequestId: request.merchantRequestId,
+        checkoutRequestId: stkPushResponse.CheckoutRequestID,
+        merchantRequestId: stkPushResponse.MerchantRequestID,
         status: "PENDING",
-        productId: request.productId,
-        phoneNumber: request.phoneNumber,
-        amount: parseFloat(request.amount),
+        productId,
+        phoneNumber,
+        amount: parseFloat(amount),
       },
     });
 
-    res.json({ success: true, transaction });
+    res.json({ 
+      success: true, 
+      message: stkPushResponse.CustomerMessage || 'STK push sent to your phone',
+      transaction,
+      stkPushResponse
+    });
   } catch (error) {
-    console.error("Error creating transaction:", error);
-    res.status(500).json({ error: "Failed to create transaction" });
+    console.error("Error initiating payment:", error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || "Failed to initiate payment" 
+    });
   }
 });
 
